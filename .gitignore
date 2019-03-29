@@ -1,4 +1,4 @@
-*.o
-*.ko
-*.order
-*.symvers
+/*.o
+/*.ko
+/*.order
+/*.symvers
