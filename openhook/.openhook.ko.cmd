@@ -1,1 +1,0 @@
-cmd_/home/minyoung/documents/openhook/openhook.ko := ld -r -m elf_x86_64 -z max-page-size=0x200000 -T ./scripts/module-common.lds --build-id  -o /home/minyoung/documents/openhook/openhook.ko /home/minyoung/documents/openhook/openhook.o /home/minyoung/documents/openhook/openhook.mod.o ;  true

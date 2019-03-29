@@ -2,3 +2,7 @@
 /*.ko
 /*.order
 /*.symvers
+/*.mk
+/*.cmd
+/*.mod.c
+/*.mod.o
