@@ -1,0 +1,1 @@
+cmd_/home/minyoung/documents/dogdoor/dogdoor.ko := ld -r -m elf_x86_64 -z max-page-size=0x200000 -T ./scripts/module-common.lds --build-id  -o /home/minyoung/documents/dogdoor/dogdoor.ko /home/minyoung/documents/dogdoor/dogdoor.o /home/minyoung/documents/dogdoor/dogdoor.mod.o ;  true

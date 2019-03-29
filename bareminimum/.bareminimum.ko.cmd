@@ -1,0 +1,1 @@
+cmd_/home/minyoung/Documents/bareminimum/bareminimum.ko := ld -r -m elf_x86_64 -z max-page-size=0x200000 -T ./scripts/module-common.lds --build-id  -o /home/minyoung/Documents/bareminimum/bareminimum.ko /home/minyoung/Documents/bareminimum/bareminimum.o /home/minyoung/Documents/bareminimum/bareminimum.mod.o ;  true

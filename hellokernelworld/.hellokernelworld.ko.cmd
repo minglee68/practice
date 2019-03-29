@@ -1,0 +1,1 @@
+cmd_/home/minyoung/documents/hellokernelworld/hellokernelworld.ko := ld -r -m elf_x86_64 -z max-page-size=0x200000 -T ./scripts/module-common.lds --build-id  -o /home/minyoung/documents/hellokernelworld/hellokernelworld.ko /home/minyoung/documents/hellokernelworld/hellokernelworld.o /home/minyoung/documents/hellokernelworld/hellokernelworld.mod.o ;  true
